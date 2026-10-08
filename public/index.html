@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Live Auction</title>
+  <style>
+    body { font-family: sans-serif; max-width: 500px; margin: 40px auto; }
+    #status { font-weight: bold; }
+  </style>
+</head>
+<body>
+  <h2 id="item">Loading...</h2>
+  <p>Status: <span id="status">connecting...</span></p>
+  <p>Highest bid: <b id="highest">-</b> by <b id="bidder">-</b></p>
+
+  <input id="name" placeholder="Your name">
+  <input id="amount" type="number" placeholder="Amount">
+  <button onclick="sendBid()">Bid</button>
+  <p id="message"></p>
+
+  <h3>Recent bids</h3>
+  <ul id="bids"></ul>
+
+  <script>
+    let ws;
+
+    // Connect to the server (also used to reconnect)
+    function connect() {
+      ws = new WebSocket('ws://' + location.host);
+
+      ws.onopen = () => document.getElementById('status').textContent = 'connected';
+
+      // The server sent new state or the result of our bid
+      ws.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+        if (data.type === 'state') {
+          document.getElementById('item').textContent = data.auction.item;
+          document.getElementById('highest').textContent = data.auction.highest_bid;
+          document.getElementById('bidder').textContent = data.auction.highest_bidder || '-';
+          const list = document.getElementById('bids');
+          list.innerHTML = '';
+          for (const b of data.recentBids) {
+            const li = document.createElement('li');
+            li.textContent = b.bidder + ': ' + b.amount;
+            list.appendChild(li);
+          }
+        }
+        if (data.type === 'result') {
+          document.getElementById('message').textContent = data.message;
+        }
+      };
+
+      // Connection lost: try again in 2 seconds
+      ws.onclose = () => {
+        document.getElementById('status').textContent = 'disconnected, retrying...';
+        setTimeout(connect, 2000);
+      };
+    }
+
+    // Send our bid to the server
+    function sendBid() {
+      if (ws.readyState !== WebSocket.OPEN) {
+        document.getElementById('message').textContent = 'Not connected';
+        return;
+      }
+      ws.send(JSON.stringify({
+        type: 'bid',
+        bidder: document.getElementById('name').value,
+        amount: Number(document.getElementById('amount').value)
+      }));
+    }
+
+    connect();
+  </script>
+</body>
+</html>
