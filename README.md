@@ -5,9 +5,7 @@
 npm install
 npm start
 ```
-Open http://localhost:3000 in two browser tabs and bid from both.
-
-Test simultaneous bids (with the server running): `npm test`
+Open http://localhost:3000 in two browser tabs and bid from both
 
 To start the auction over, stop the server and delete `auction.db`.
 
